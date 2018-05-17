@@ -7,10 +7,15 @@ from storage.storage_scan import StorageScan
 from storage.storage_object import StorageObject
 
 class StorageService:
-    def __init__(self, publish_distances_func, publish_location_func):
+    _scan_interval = 0.25
+    _storage_length = 210
+    _car_2_side_dist = 50
+
+    def __init__(self, publish_distances_func, publish_position_func, publish_storage_objects_func):
         self.publish_distances_func = publish_distances_func
-        self.publish_location_func = publish_location_func
-        self.scan_interval = 0.25
+        self.publish_position_func = publish_position_func
+        self.publish_storage_objects_func = publish_storage_objects_func
+
         # self.car = Car(6, 13, 19, 26, 21, 20, 16, 12,
         #       14, 15, 18, 17, 2, 3)
         self.car = Car(13, 6, 26, 19, 20, 21, 12, 16,
@@ -30,16 +35,16 @@ class StorageService:
         self.car.move_backward()
         while remaining_duration > 0:
             remaining_duration = remaining_duration - step
-            location = remaining_duration / duration
-            print("Location: " + str(location))
-            self.publish_location_func(location)
+            position = remaining_duration / duration
+            print("Location: " + str(position))
+            self.publish_position_func(position)
             time.sleep(step)
 
         self.car.stop()
 
     def _scan_storage_worker(self):
-        storage_scan = StorageScan(210, 50, self.scan_interval)
-        start_time = time.time()
+        storage_scan = StorageScan(StorageService._storage_length, StorageService._car_2_side_dist,
+                                   StorageService._scan_interval, start_time = time.time())
 
         while self.car_running:
             dists = self.car.read_distances()
@@ -53,16 +58,18 @@ class StorageService:
                 self.car.stop()
                 break
 
-            time.sleep(self.scan_interval)
+            time.sleep(StorageService._scan_interval)
 
-        end_time = time.time()
+        storage_scan._end_time = time.time()
+        storage_scan._stop_front_dist = dists[0]
 
         objects = storage_scan.collect_objects()
         print('Number of scans: ' + str(storage_scan.no_scan_dists()) + '; number of objects: ' + str(len(objects)))
         for obj in objects:
             print('Start index: ' + str(obj.start_index) + '; end index: ' + str(obj.end_index))
 
-        self._return_back_car(start_time, end_time)
+        self.publish_storage_objects_func(objects)
+        self._return_back_car(storage_scan.start_time, storage_scan.end_time)
 
 
 

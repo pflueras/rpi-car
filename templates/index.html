@@ -30,9 +30,14 @@
                     + ' | back: ' + msg['back']).html());
             });
 
-            socket.on('car_location', function(msg) {
+            socket.on('car_position', function(msg) {
                 $('#log').prepend('<br>' + $('<div/>').text('Location -> '
-                    + msg['car_location']).html());
+                    + msg['car_position']).html());
+            });
+
+            socket.on('storage_objects', function(msg) {
+                $('#log').prepend('<br>' + $('<div/>').text('Storage objects -> '
+                    + msg['storage_objects']).html());
             });
 
             // Handlers for the different forms in the page.
