@@ -19,6 +19,6 @@ socket_io.on('stop_car')(web_controller.stop_car)
 
 if __name__ == "__main__":
     try:
-        socket_io.run(app, host='0.0.0.0')
+        socket_io.run(app, host = '0.0.0.0')
     finally:
         GPIO.cleanup()

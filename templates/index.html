@@ -24,10 +24,15 @@
             // to the client. The data is then displayed in the "Received"
             // section of the page.
             socket.on('car_distances', function(msg) {
-                $('#log').prepend('<br>' + $('<div/>').text('Distances->'
+                $('#log').prepend('<br>' + $('<div/>').text('Distances ->'
                     + ' front: ' + msg['front']
                     + ' | side: ' + msg['side']
                     + ' | back: ' + msg['back']).html());
+            });
+
+            socket.on('car_location', function(msg) {
+                $('#log').prepend('<br>' + $('<div/>').text('Location -> '
+                    + msg['car_location']).html());
             });
 
             // Handlers for the different forms in the page.
