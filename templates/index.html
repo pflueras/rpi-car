@@ -118,10 +118,10 @@
                 stage.setHeight($canvasContainer.innerHeight());
             });
 
-            socket.on("car_location", (msg) => {
+            socket.on("car_position", (msg) => {
                 requestAnimationFrame(() => {
 
-                    let posY = (1 - msg.car_location) * $canvasContainer.innerHeight();
+                    let posY = (1 - msg.car_position) * $canvasContainer.innerHeight();
 
                     if (posY > $canvasContainer.innerHeight() - robotHeight) {
                         posY = $canvasContainer.innerHeight() - robotHeight;
