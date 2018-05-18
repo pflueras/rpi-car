@@ -2,16 +2,19 @@
 <html>
 <head>
     <title>RPi CAR</title>
-    <script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css"
+          integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+    <script src="https://cdn.rawgit.com/konvajs/konva/2.0.3/konva.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
     <script type="text/javascript" charset="utf-8">
-        $(document).ready(function() {
+        $(document).ready(function () {
             // Use a "/test" namespace.
             // An application can open a connection on multiple namespaces, and
             // Socket.IO will multiplex all those connections on a single
             // physical channel. If you don't care about multiple channels, you
             // can set the namespace to an empty string.
-            namespace = '/test';
+            var namespace = '/test';
 
             // Connect to the Socket.IO server.
             // The connection URL has the following format:
@@ -23,70 +26,202 @@
             // The callback function is invoked whenever the server emits data
             // to the client. The data is then displayed in the "Received"
             // section of the page.
-            socket.on('car_distances', function(msg) {
-                $('#log').prepend('<br>' + $('<div/>').text('Distances ->'
-                    + ' front: ' + msg['front']
-                    + ' | side: ' + msg['side']
-                    + ' | back: ' + msg['back']).html());
-            });
 
-            socket.on('car_position', function(msg) {
-                $('#log').prepend('<br>' + $('<div/>').text('Location -> '
-                    + msg['car_position']).html());
-            });
-
-            socket.on('storage_objects', function(msg) {
-                $('#log').prepend('<br>' + $('<div/>').text('Storage objects -> '
-                    + msg['storage_objects']).html());
+            socket.on('car_distances', function (msg) {
+                console.log(parseInt(msg.front, 10));
+                $(".form-control.top").val(parseInt(msg.front, 10));
+                $(".form-control.left").val(parseInt(msg.side, 10));
+                $(".form-control.bottom").val(parseInt(msg.back, 10));
             });
 
             // Handlers for the different forms in the page.
             // These accept data from the user and send it to the server in a
             // variety of ways
-            $('form#scan_storage').submit(function(event) {
+            $('form#scan_storage').submit(function (event) {
                 socket.emit('scan_storage', {data: $('#scan_storage_data').val()});
                 return false;
             });
 
-            $('form#backward').submit(function(event) {
-                socket.emit('backward_car', {data: $('#backward_data').val()});
-                return false;
+            $(".scan-button").on("click", () => {
+                console.log("start");
+                socket.emit('scan_storage', {
+                    data: $('#scan_storage_data').val()
+                });
             });
 
-            $('form#stop').submit(function(event) {
-                socket.emit('stop_car', {data: $('#stop_data').val()});
-                return false;
+            $(".back-button").on("click", () => {
+                console.log("back");
+                socket.emit('backward_car', {
+                    data: $('#backward_data').val()
+                });
             });
 
-            $('form#disconnect').submit(function(event) {
+            $(".stop-button").on("click", () => {
+                console.log("stop");
+                socket.emit('stop_car', {
+                    data: $('#stop_data').val()
+                });
+            });
+
+            $('form#disconnect').submit(function (event) {
                 socket.emit('disconnect_request');
                 return false;
             });
+
+            const boxWidth = 65;
+            const $canvasContainer = $(".canvas-container");
+
+            // Canvas
+            const stage = new Konva.Stage({
+                container: ".canvas-container",
+                width: $canvasContainer.innerWidth(),
+                height: $canvasContainer.innerHeight()
+            });
+
+            const layer = new Konva.Layer();
+
+            stage.add(layer);
+
+            const box = new Konva.Rect({
+                x: 0,
+                y: stage.getHeight() - 200,
+                height: 100,
+                width: boxWidth,
+                fill: "green",
+                stroke: "black",
+                strokeWidth: 2
+            });
+            layer.add(box);
+            layer.draw();
+
+            let robot;
+            const robotWidth = 152;
+            const robotHeight = 164;
+            const robotImage = new Image();
+            robotImage.src = "https://bitbucket.org/luci_pacurar/rpi/raw/ec59092a8b1469412681693f1724ad8703ff04f1/img/robbie-05%402x.png";
+            robotImage.onload = () => {
+                robot = new Konva.Image({
+                    x: ($canvasContainer.innerWidth() - boxWidth) / 2
+                        - robotWidth / 2 + boxWidth,
+                    y: $canvasContainer.innerHeight() - robotHeight,
+                    image: robotImage,
+                    width: robotWidth,
+                    height: robotHeight
+                });
+                layer.add(robot);
+                layer.draw();
+            };
+
+            $(window).on("resize", () => {
+                robot.y($canvasContainer.innerHeight() - robotHeight);
+                stage.setWidth($canvasContainer.innerWidth());
+                stage.setHeight($canvasContainer.innerHeight());
+            });
+
+            socket.on("car_location", (msg) => {
+                requestAnimationFrame(() => {
+
+                    let posY = (1 - msg.car_location) * $canvasContainer.innerHeight();
+
+                    if (posY > $canvasContainer.innerHeight() - robotHeight) {
+                        posY = $canvasContainer.innerHeight() - robotHeight;
+                    }
+
+                    robot.y(posY);
+                    layer.draw();
+                });
+            });
         });
     </script>
+    <style type="text/css" rel="stylesheet">
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .canvas-container {
+            position: absolute;
+            height: 100%;
+            left: 0;
+            width: 465px;
+            border-right: 1px solid #cccccc;
+        }
+
+        .app-container {
+            position: absolute;
+            height: 100%;
+            left: 465px;
+            right: 0;
+        }
+
+        .app-container .scan-container {
+            padding-top: 25px;
+            text-align: center;
+        }
+
+        .app-container .distance-info {
+            position: relative;
+            margin: 50px auto 0 auto;
+            width: 304px;
+            height: 328px;
+        }
+
+        .app-container .distance-info .distance {
+            width: 87px;
+            position: absolute;
+        }
+
+        .app-container .distance-info .distance.top {
+            top: -40px;
+            left: 50%;
+            margin-left: -16px;
+        }
+
+        .app-container .distance-info .distance.left {
+            top: 50%;
+            left: -80px;
+            margin-top: -19px;
+        }
+
+        .app-container .distance-info .distance.bottom {
+            bottom: -40px;
+            left: 50%;
+            margin-left: -16px;
+        }
+
+        .app-container .distance-info .distance .form-control {
+            display: inline-block;
+            width: 60px;
+        }
+    </style>
 </head>
 <body>
-    <h1>RPi Car</h1>
-    <form id="scan_storage" method="POST" action='#'>
-        <input type="text" name="scan_storage_data" id="scan_storage_data" placeholder="Message">
-        <input type="submit" value="Scan Storage">
-    </form>
+<div class="canvas-container"></div>
+<div class="app-container">
+    <div class="scan-container">
 
-    <form id="backward" method="POST" action='#'>
-        <input type="text" name="backward_data" id="backward_data" placeholder="Message">
-        <input type="submit" value="Backward Car">
-    </form>
+        <button class="btn btn-primary scan-button">Scan warehouse</button>
+        <button class="btn btn-danger stop-button">Stop</button>
+        <button class="btn btn-secondary back-button">Back</button>
 
-    <form id="stop" method="POST" action='#'>
-        <input type="text" name="stop_data" id="stop_data" placeholder="Message">
-        <input type="submit" value="Stop Car">
-    </form>
-
-    <form id="disconnect" method="POST" action="#">
-        <input type="submit" value="Disconnect">
-    </form>
-
-    <h2>Receive:</h2>
-    <div id="log"></div>
+        <div class="scan-info">
+        </div>
+        <div class="distance-info">
+            <div class="distance top">
+                <input type="text" class="form-control top" readonly>
+                <span>cm</span>
+            </div>
+            <div class="distance left">
+                <input type="text" class="form-control left" readonly>
+                <span>cm</span>
+            </div>
+            <div class="distance bottom">
+                <input type="text" class="form-control bottom" readonly>
+                <span>cm</span>
+            </div>
+            <img src="https://bitbucket.org/luci_pacurar/rpi/raw/ec59092a8b1469412681693f1724ad8703ff04f1/img/robbie-05%402x.png" alt="">
+        </div>
+    </div>
+</div>
 </body>
 </html>
