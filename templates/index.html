@@ -28,7 +28,6 @@
             // section of the page.
 
             socket.on('car_distances', function (msg) {
-                console.log(parseInt(msg.front, 10));
                 $(".form-control.top").val(parseInt(msg.front, 10));
                 $(".form-control.left").val(parseInt(msg.side, 10));
                 $(".form-control.bottom").val(parseInt(msg.back, 10));
@@ -37,13 +36,10 @@
             // Handlers for the different forms in the page.
             // These accept data from the user and send it to the server in a
             // variety of ways
-            $('form#scan_storage').submit(function (event) {
-                socket.emit('scan_storage', {data: $('#scan_storage_data').val()});
-                return false;
-            });
 
             $(".scan-button").on("click", () => {
                 console.log("start");
+                boxesLayer.clear();
                 socket.emit('scan_storage', {
                     data: $('#scan_storage_data').val()
                 });
@@ -79,20 +75,10 @@
             });
 
             const layer = new Konva.Layer();
+            const boxesLayer = new Konva.Layer();
 
             stage.add(layer);
-
-            const box = new Konva.Rect({
-                x: 0,
-                y: stage.getHeight() - 200,
-                height: 100,
-                width: boxWidth,
-                fill: "green",
-                stroke: "black",
-                strokeWidth: 2
-            });
-            layer.add(box);
-            layer.draw();
+            stage.add(boxesLayer);
 
             let robot;
             const robotWidth = 152;
@@ -133,7 +119,30 @@
             });
 
             socket.on("storage_objects", (msg) => {
-                console.log(msg);
+                const storageObjects = msg.storage_objects;
+                if (!storageObjects || storageObjects.length === 0) {
+                    return;
+                }
+                for (const so of storageObjects) {
+                    console.log("start", so.start_position);
+                    console.log("end", so.end_position);
+                    const box = new Konva.Rect({
+                        x: 0,
+                        y: (1 - so.end_position) * stage.getHeight(),
+                        height: (so.end_position - so.start_position)
+                            * stage.getHeight(),
+                        width: boxWidth,
+                        fill: "green",
+                        stroke: "black",
+                        strokeWidth: 2
+                    });
+                    console.log("y", box.x());
+                    console.log("height", box.getHeight());
+                    requestAnimationFrame(() => {
+                        boxesLayer.add(box);
+                        boxesLayer.draw();
+                    });
+                }
             });
         });
     </script>
