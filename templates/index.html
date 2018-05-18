@@ -131,6 +131,10 @@
                     layer.draw();
                 });
             });
+
+            socket.on("storage_objects", (msg) => {
+                console.log(msg);
+            });
         });
     </script>
     <style type="text/css" rel="stylesheet">

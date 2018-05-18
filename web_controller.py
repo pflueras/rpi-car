@@ -31,4 +31,4 @@ class WebController:
         json_objects = []
         for storage_object in storage_objects:
             json_objects.append({'start_position': storage_object.start_position, 'end_position': storage_object.end_position})
-        emit('storage_objects', {'storage_objects': json.dumps(json_objects)})
+        emit('storage_objects', {'storage_objects': json_objects})
